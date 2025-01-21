@@ -43,6 +43,7 @@ import {
   JWTLoginParams,
   MPCKeyDetails,
   OAuthLoginParams,
+  PreSigningHookType,
   Secp256k1PrecomputedClient,
   SessionData,
   SubVerifierDetailsParams,
@@ -98,6 +99,8 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   private _keyType: KeyType;
 
   private atomicCallStackCounter: number = 0;
+
+  private preSigningHook?: PreSigningHookType;
 
   constructor(options: Web3AuthOptions) {
     if (!options.web3AuthClientId) {
@@ -456,6 +459,10 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     }
   }
 
+  setPreSigningHook(preSigningHook: PreSigningHookType) {
+    this.preSigningHook = preSigningHook;
+  }
+
   public async handleRedirectResult(): Promise<void> {
     this.checkReady();
 
@@ -778,6 +785,12 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   }
 
   public async sign(data: Buffer, hashed: boolean = false, secp256k1Precompute?: Secp256k1PrecomputedClient): Promise<Buffer> {
+    if (this.preSigningHook) {
+      const result = await this.preSigningHook({ data: Uint8Array.from(data), hashed });
+      if (!result.success || result.error) {
+        throw Error(result.error || "preSigningValidator failed");
+      }
+    }
     this.wasmLib = await this.loadTssWasm();
     if (this.keyType === KeyType.secp256k1) {
       const sig = await this.sign_ECDSA_secp256k1(data, hashed, secp256k1Precompute);

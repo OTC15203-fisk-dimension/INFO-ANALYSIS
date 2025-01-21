@@ -786,9 +786,9 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
   public async sign(data: Buffer, hashed: boolean = false, secp256k1Precompute?: Secp256k1PrecomputedClient): Promise<Buffer> {
     if (this.preSigningValidator) {
-      const result = await this.preSigningValidator({ data, hashed });
+      const result = await this.preSigningValidator({ data: Uint8Array.from(data), hashed });
       if (!result.success || result.error) {
-        throw Error(result.error);
+        throw Error(result.error || "preSigningValidator failed");
       }
     }
     this.wasmLib = await this.loadTssWasm();

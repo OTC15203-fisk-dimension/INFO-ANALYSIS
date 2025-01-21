@@ -1,4 +1,4 @@
-import assert from "node:assert";
+import assert, { fail } from "node:assert";
 import test from "node:test";
 
 import { EllipticPoint } from "@tkey/common-types";
@@ -166,7 +166,39 @@ variable.forEach((testVariable) => {
       const signature2 = sigToRSV(await coreKitInstance.sign(msgBuffer));
       const pubkey2 = secp256k1.recoverPubKey(msgHash, signature2, signature2.v) as EllipticPoint;
       assert(pubkey2.eq(publicKeyPoint));
+
+      // should fail to sign due to preSignValidation
+      {
+        coreKitInstance.setPreSigningValidator(async ({ data }) => {
+          return {
+            success: false,
+            data: Buffer.from(data).toString("hex")
+          }
+        });
+
+        try {
+          await coreKitInstance.sign(msgHash, true);
+          fail("Should fail signing")
+        } catch (err) {
+          assert(err);
+        }
+      };
+
+      // should succeed to sign
+      {
+        coreKitInstance.setPreSigningValidator(async ({ data }) => {
+          return {
+            success: true,
+            data: Buffer.from(data).toString("hex")
+          }
+        });
+        const signature = sigToRSV(await coreKitInstance.sign(msgHash, true));
+        const pubkey = secp256k1.recoverPubKey(msgHash, signature, signature.v) as EllipticPoint;
+        const publicKeyPoint = bufferToElliptic(coreKitInstance.getPubKey());
+        assert(pubkey.eq(publicKeyPoint));
+      };
     });
+
 
     await t.test("#Login and sign with different account/wallet index", async function () {
       const vid = stringGen(10);

@@ -496,4 +496,4 @@ export interface Secp256k1PrecomputedClient {
   serverCoeffs: Record<string, string>;
 }
 
-export type PreSigningValidatorType = (params: { data: Uint8Array; hashed: boolean }) => Promise<{ success: boolean; error?: string; data?: string }>;
+export type PreSigningHookType = (params: { data: Uint8Array; hashed: boolean }) => Promise<{ success: boolean; error?: string; data?: string }>;

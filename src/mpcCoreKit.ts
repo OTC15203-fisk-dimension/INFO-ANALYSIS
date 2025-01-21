@@ -43,7 +43,7 @@ import {
   JWTLoginParams,
   MPCKeyDetails,
   OAuthLoginParams,
-  PreSigningValidatorType,
+  PreSigningHookType,
   Secp256k1PrecomputedClient,
   SessionData,
   SubVerifierDetailsParams,
@@ -100,7 +100,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
   private atomicCallStackCounter: number = 0;
 
-  private preSigningValidator?: PreSigningValidatorType;
+  private preSigningHook?: PreSigningHookType;
 
   constructor(options: Web3AuthOptions) {
     if (!options.web3AuthClientId) {
@@ -459,8 +459,8 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     }
   }
 
-  setPreSigningValidator(preSigningValidator: PreSigningValidatorType) {
-    this.preSigningValidator = preSigningValidator;
+  setPreSigningHook(preSigningValidator: PreSigningHookType) {
+    this.preSigningHook = preSigningValidator;
   }
 
   public async handleRedirectResult(): Promise<void> {
@@ -785,8 +785,8 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   }
 
   public async sign(data: Buffer, hashed: boolean = false, secp256k1Precompute?: Secp256k1PrecomputedClient): Promise<Buffer> {
-    if (this.preSigningValidator) {
-      const result = await this.preSigningValidator({ data: Uint8Array.from(data), hashed });
+    if (this.preSigningHook) {
+      const result = await this.preSigningHook({ data: Uint8Array.from(data), hashed });
       if (!result.success || result.error) {
         throw Error(result.error || "preSigningValidator failed");
       }

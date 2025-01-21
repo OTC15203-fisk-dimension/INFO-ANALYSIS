@@ -169,7 +169,7 @@ variable.forEach((testVariable) => {
 
       // should fail to sign due to preSignValidation
       {
-        coreKitInstance.setPreSigningValidator(async ({ data }) => {
+        coreKitInstance.setPreSigningHook(async ({ data }) => {
           return {
             success: false,
             data: Buffer.from(data).toString("hex")
@@ -186,7 +186,7 @@ variable.forEach((testVariable) => {
 
       // should succeed to sign
       {
-        coreKitInstance.setPreSigningValidator(async ({ data }) => {
+        coreKitInstance.setPreSigningHook(async ({ data }) => {
           return {
             success: true,
             data: Buffer.from(data).toString("hex")

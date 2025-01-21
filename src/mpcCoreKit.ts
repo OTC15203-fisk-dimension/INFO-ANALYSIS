@@ -459,8 +459,8 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     }
   }
 
-  setPreSigningHook(preSigningValidator: PreSigningHookType) {
-    this.preSigningHook = preSigningValidator;
+  setPreSigningHook(preSigningHook: PreSigningHookType) {
+    this.preSigningHook = preSigningHook;
   }
 
   public async handleRedirectResult(): Promise<void> {

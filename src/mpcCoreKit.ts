@@ -102,6 +102,8 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
   private preSigningHook?: PreSigningHookType;
 
+  private socketTransports: string[] = ["websocket", "polling"];
+
   constructor(options: Web3AuthOptions) {
     if (!options.web3AuthClientId) {
       throw CoreKitError.clientIdInvalid();
@@ -127,7 +129,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     if (!options.disableHashedFactorKey) options.disableHashedFactorKey = false;
     if (!options.hashedFactorNonce) options.hashedFactorNonce = options.web3AuthClientId;
     if (options.disableSessionManager === undefined) options.disableSessionManager = false;
-
+    if (options.socketTransports) this.socketTransports = options.socketTransports;
     this.options = options as Web3AuthOptionsWithDefaults;
 
     this.currentStorage = new AsyncStorage(this._storageBaseKey, options.storage);
@@ -736,7 +738,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     } = generateTSSEndpoints(torusNodeTSSEndpoints, parties, clientIndex, nodeIndexes);
 
     // Setup sockets.
-    const sockets = await setupSockets(tssWSEndpoints, randomSessionNonce);
+    const sockets = await setupSockets(tssWSEndpoints, randomSessionNonce, "/tss/socket.io", this.socketTransports);
 
     const dklsCoeff = getDKLSCoeff(true, participatingServerDKGIndexes, tssShareIndex);
     const denormalisedShare = dklsCoeff.mul(tssShare).umod(secp256k1.curve.n);
@@ -1506,7 +1508,8 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       clientShareAdjustedHex,
       pubKeyHex,
       data,
-      serverCoefficientsHex
+      serverCoefficientsHex,
+      this.socketTransports
     );
 
     log.info(`signature: ${signature}`);

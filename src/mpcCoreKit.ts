@@ -324,7 +324,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       throw CoreKitError.oauthLoginUnsupported(`Oauth login is NOT supported in ${this.options.uxMode} mode.`);
     }
 
-    if ( this.state.factorKey ) {
+    if (this.state.factorKey) {
       throw CoreKitError.oauthLoginUnsupported("Instance is alreay login or rehydrated");
     }
 
@@ -761,7 +761,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     }
 
     // Client lib expects pub key in XY-format, base64-encoded.
-    const tssPubKeyBase64 = Buffer.from(tssPubKey.toSEC1(secp256k1).subarray(1)).toString("base64");
+    const tssPubKeyBase64 = tssPubKey.toSEC1(secp256k1).subarray(1).toString("base64");
 
     const client = new Client(
       currentSession,
@@ -801,7 +801,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     this.wasmLib = await this.loadTssWasm();
     if (this.keyType === KeyType.secp256k1) {
       const sig = await this.sign_ECDSA_secp256k1(data, hashed, secp256k1Precompute);
-      return Buffer.concat([sig.r, sig.s, Buffer.from([sig.v])]);
+      return Buffer.concat([new Uint8Array(sig.r), new Uint8Array(sig.s), new Uint8Array([sig.v])]);
     } else if (this.keyType === KeyType.ed25519) {
       return this.sign_ed25519(data, hashed);
     }
@@ -1244,7 +1244,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
         postboxKeyNodeIndexes: postboxKeyNodeIndexes || [],
         factorKey: factorKey?.toString("hex"),
         tssShareIndex: tssShareIndex as number,
-        tssPubKey: Buffer.from(tssPubKey).toString("hex"),
+        tssPubKey: tssPubKey.toString("hex"),
         signatures: this.signatures,
         userInfo,
       };
@@ -1521,7 +1521,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       clientXCoord,
       clientShareAdjustedHex,
       pubKeyHex,
-      data,
+      new Uint8Array(data),
       serverCoefficientsHex,
       this.socketTransports
     );

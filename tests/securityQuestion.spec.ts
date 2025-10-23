@@ -123,7 +123,7 @@ const variable: TestVariable[] = [
   // { web3AuthNetwork: WEB3AUTH_NETWORK.MAINNET, uxMode: UX_MODE.REDIRECT, manualSync: true },
 ];
 
-const email = "testmail99";
+const email = "testmail99-1";
 
 variable.forEach(async (testVariable) => {
   const newCoreKitLogInInstance = async () => {

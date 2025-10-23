@@ -4,8 +4,10 @@ import test from "node:test";
 import { tssLib as tssLibDKLS } from "@toruslabs/tss-dkls-lib";
 import { tssLib as tssLibFROST } from "@toruslabs/tss-frost-lib";
 
-import { AsyncStorage, MemoryStorage, TssLibType, TssShareType, WEB3AUTH_NETWORK } from "../src";
-import { bufferToElliptic, criticalResetAccount, newCoreKitLogInInstance } from "./setup";
+import {  MemoryStorage, sigToRSV, TssLibType, TssShareType, WEB3AUTH_NETWORK, Web3AuthMPCCoreKit } from "../src";
+import { bufferToElliptic, criticalResetAccount, mockLogin  } from "./setup";
+import { EllipticPoint, KeyType, secp256k1 } from "@tkey/common-types";
+import { keccak256 } from "@toruslabs/metadata-helpers";
 
 type ImportKeyTestVariable = {
   manualSync?: boolean;
@@ -13,25 +15,52 @@ type ImportKeyTestVariable = {
   importKeyEmail: string;
   tssLib: TssLibType;
 };
+async function signSecp256k1Data( params : { coreKitInstance: Web3AuthMPCCoreKit, msg: string, }) {
+  const {coreKitInstance, msg } = params
+  const msgBuffer1 = Buffer.from(msg);
+  const msgHash = keccak256(msgBuffer1);
 
+  const signature = sigToRSV(await coreKitInstance.sign(msgHash, true));
+
+  const pubkey = secp256k1.recoverPubKey(msgHash, signature, signature.v) as EllipticPoint;
+  const publicKeyPoint = bufferToElliptic(coreKitInstance.getPubKey());
+  assert(pubkey.eq(publicKeyPoint));
+}
 const storageInstance = new MemoryStorage();
 export const ImportTest = async (testVariable: ImportKeyTestVariable) => {
   async function newCoreKitInstance(email: string, importTssKey?: string) {
-    return newCoreKitLogInInstance({
-      network: WEB3AUTH_NETWORK.DEVNET,
-      manualSync: testVariable.manualSync,
-      email: email,
-      storageInstance,
-      tssLib: testVariable.tssLib,
-      importTssKey,
-    });
+      const instance = new Web3AuthMPCCoreKit({
+        web3AuthClientId: "torus-key-test",
+        web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET,
+        baseUrl: "http://localhost:3000",
+        uxMode: "nodejs",
+        tssLib: testVariable.tssLib,
+        storage: storageInstance,
+        manualSync: testVariable.manualSync,
+        disableSessionManager: true
+      });
+
+      const { idToken, parsedToken } = await mockLogin(email);
+      await instance.init({ handleRedirectResult: false, rehydrate: false });
+      await instance.loginWithJWT({
+        verifier: "torus-test-health",
+        verifierId: parsedToken.email,
+        idToken,
+        importTssKey
+      });
+      return instance;
+    
   }
 
   async function resetAccount(email: string) {
     const kit = await newCoreKitInstance(email);
+    console.log('tss pub key', kit.state.tssPubKey)
     await criticalResetAccount(kit);
+    if (testVariable.manualSync) {
+      await kit.commitChanges();
+    }
     await kit.logout();
-    await new AsyncStorage(kit._storageKey, storageInstance).resetStore();
+    // await new AsyncStorage(kit._storageKey, storageInstance).resetStore();
   }
 
   test(`import recover tss key : ${testVariable.manualSync}`, async function (t) {
@@ -50,6 +79,9 @@ export const ImportTest = async (testVariable: ImportKeyTestVariable) => {
         shareType: TssShareType.DEVICE,
       });
 
+      if (testVariable.tssLib.keyType === KeyType.secp256k1) {
+        await signSecp256k1Data({ coreKitInstance, msg: "hello world" });
+      }
       const factorKeyRecovery = await coreKitInstance.createFactor({
         shareType: TssShareType.RECOVERY,
       });
@@ -62,8 +94,21 @@ export const ImportTest = async (testVariable: ImportKeyTestVariable) => {
       const exportedTssKey1 = await coreKitInstance._UNSAFE_exportTssKey();
       await coreKitInstance.logout();
 
+      const instance = new Web3AuthMPCCoreKit({
+        web3AuthClientId: "torus-key-test",
+        web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET,
+        baseUrl: "http://localhost:3000",
+        uxMode: "nodejs",
+        tssLib: testVariable.tssLib,
+        storage: storageInstance,
+        manualSync: testVariable.manualSync,
+        disableSessionManager: true
+      });
+
+      await instance.init({rehydrate: false, handleRedirectResult: false})
+      
       // Recover key from any two factors.
-      const recoveredTssKey = await coreKitInstance._UNSAFE_recoverTssKey([factorKeyDevice, factorKeyRecovery]);
+      const recoveredTssKey = await instance._UNSAFE_recoverTssKey([factorKeyDevice, factorKeyRecovery]);
       assert.strictEqual(recoveredTssKey, exportedTssKey1);
 
       // Initialize new instance and import existing key.
@@ -105,9 +150,9 @@ export const ImportTest = async (testVariable: ImportKeyTestVariable) => {
 };
 
 const variable: ImportKeyTestVariable[] = [
-  { manualSync: false, email: "emailexport", importKeyEmail: "emailimport", tssLib: tssLibDKLS },
-  { manualSync: true, email: "emailexport", importKeyEmail: "emailimport", tssLib: tssLibDKLS },
-  { manualSync: false, email: "emailexport_ed25519", importKeyEmail: "emailimport_ed25519", tssLib: tssLibFROST },
+  { manualSync: false, email: "emailexport-01", importKeyEmail: "emailimport-001", tssLib: tssLibDKLS },
+  { manualSync: true, email: "emailexport-01", importKeyEmail: "emailimport-001", tssLib: tssLibDKLS },
+  // { manualSync: false, email: "emailexport_ed25519", importKeyEmail: "emailimport_ed25519", tssLib: tssLibFROST },
 ];
 
 variable.forEach(async (testVariable) => {

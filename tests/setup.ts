@@ -30,14 +30,10 @@ export const criticalResetAccount = async (coreKitInstance: Web3AuthMPCCoreKit):
     throw new Error("coreKitInstance is not set");
   }
 
-  if (coreKitInstance.tKey.secp256k1Key) {
-    await coreKitInstance.tKey.CRITICAL_deleteTkey();
-  } else {
-    await coreKitInstance.tKey.storageLayer.setMetadata({
-      privKey: new BN(coreKitInstance.state.postBoxKey!, "hex"),
-      input: { message: "KEY_NOT_FOUND" },
-    });
-  }
+  await coreKitInstance.tKey.storageLayer.setMetadata({
+    privKey: new BN(coreKitInstance.state.postBoxKey!, "hex"),
+    input: { message: "KEY_NOT_FOUND" },
+  });
 };
 
 const privateKey = "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCCD7oLrcKae+jVZPGx52Cb/lKhdKxpXjl9eGNa1MlY57A==";
@@ -114,7 +110,7 @@ export const newCoreKitLogInInstance = async ({
   });
 
   const { idToken, parsedToken } = login ? await login(email) : await mockLogin(email);
-  await instance.init();
+  await instance.init({ handleRedirectResult: false, rehydrate: false });
   await instance.loginWithJWT({
     verifier: "torus-test-health",
     verifierId: parsedToken.email,

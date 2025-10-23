@@ -1,14 +1,15 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import { EllipticPoint, Point } from "@tkey/common-types";
+import { EllipticPoint, KeyType, Point, secp256k1 } from "@tkey/common-types";
 import { factorKeyCurve } from "@tkey/tss";
 import { tssLib as tssLibDKLS } from "@toruslabs/tss-dkls-lib";
 import { tssLib as tssLibFROST } from "@toruslabs/tss-frost-lib";
 import BN from "bn.js";
 
-import { COREKIT_STATUS, IAsyncStorage, IStorage, MemoryStorage, TssLibType, TssShareType, WEB3AUTH_NETWORK, Web3AuthMPCCoreKit } from "../src";
+import { AsyncStorage, COREKIT_STATUS, ed25519, IAsyncStorage, IStorage, MemoryStorage, sigToRSV, TssLibType, TssShareType, WEB3AUTH_NETWORK, Web3AuthMPCCoreKit } from "../src";
 import { AsyncMemoryStorage, bufferToElliptic, criticalResetAccount, mockLogin } from "./setup";
+import { keccak256 } from "@toruslabs/metadata-helpers";
 
 type FactorTestVariable = {
   manualSync?: boolean;
@@ -28,6 +29,26 @@ function getPubKeys(kit: Web3AuthMPCCoreKit, indices: number[]): EllipticPoint[]
   return pubKeys;
 }
 
+async function signSecp256k1Data( params : { coreKitInstance: Web3AuthMPCCoreKit, msg: string, }) {
+  const {coreKitInstance, msg } = params
+  const msgBuffer1 = Buffer.from(msg);
+  const msgHash = keccak256(msgBuffer1);
+
+  const signature = sigToRSV(await coreKitInstance.sign(msgHash, true));
+
+  const pubkey = secp256k1.recoverPubKey(msgHash, signature, signature.v) as EllipticPoint;
+  const publicKeyPoint = bufferToElliptic(coreKitInstance.getPubKey());
+  assert(pubkey.eq(publicKeyPoint));
+}
+
+async function signEd25519Data(params: { coreKitInstance: Web3AuthMPCCoreKit, msg: string }) {
+  const { coreKitInstance, msg } = params;
+  const msgBuffer = Buffer.from(msg)
+  const signature = ed25519().makeSignature((await coreKitInstance.sign(msgBuffer)).toString("hex"));
+  const valid = ed25519().verify(msgBuffer, signature, coreKitInstance.getPubKeyEd25519());
+  assert(valid);
+}
+
 export const FactorManipulationTest = async (testVariable: FactorTestVariable) => {
   const { email, tssLib } = testVariable;
   const newInstance = async () => {
@@ -39,6 +60,7 @@ export const FactorManipulationTest = async (testVariable: FactorTestVariable) =
       tssLib: tssLib || tssLibDKLS,
       storage: testVariable.storage,
       manualSync: testVariable.manualSync,
+      disableSessionManager: true
     });
 
     const { idToken, parsedToken } = await mockLogin(email);
@@ -55,6 +77,7 @@ export const FactorManipulationTest = async (testVariable: FactorTestVariable) =
     const resetInstance = await newInstance();
     await criticalResetAccount(resetInstance);
     await resetInstance.logout();
+    await new AsyncStorage(resetInstance._storageKey, testVariable.storage).resetStore();
   }
 
   await test(`#Factor manipulation - manualSync ${testVariable.manualSync} `, async function (t) {
@@ -163,6 +186,7 @@ export const FactorManipulationTest = async (testVariable: FactorTestVariable) =
       // login with mfa factor
       await instance2.inputFactorKey(new BN(recoverFactor, "hex"));
       assert.strictEqual(instance2.status, COREKIT_STATUS.LOGGED_IN);
+
       await instance2.logout();
 
       // new instance
@@ -180,16 +204,24 @@ export const FactorManipulationTest = async (testVariable: FactorTestVariable) =
 
       await instance3.inputFactorKey(new BN(browserFactor, "hex"));
       assert.strictEqual(instance3.status, COREKIT_STATUS.LOGGED_IN);
+
+      if ( tssLib && tssLib.keyType === KeyType.ed25519) {
+        await signEd25519Data({ coreKitInstance: instance3, msg: "hello world" });
+      } else {
+        await signSecp256k1Data({ coreKitInstance: instance3, msg: "hello world" });
+      }
+
     });
+
   });
 };
 
 const variable: FactorTestVariable[] = [
-  { manualSync: true, storage: new MemoryStorage(), email: "testmail1012" },
-  { manualSync: false, storage: new MemoryStorage(), email: "testmail1013" },
+  { manualSync: true, storage: new MemoryStorage(), email: "testmail1012-1" },
+  { manualSync: false, storage: new MemoryStorage(), email: "testmail1013-1" },
 
-  { manualSync: true, storage: new AsyncMemoryStorage(), email: "testmail1014" },
-  { manualSync: false, storage: new AsyncMemoryStorage(), email: "testmail1015" },
+  { manualSync: true, storage: new AsyncMemoryStorage(), email: "testmail1014-1" },
+  { manualSync: false, storage: new AsyncMemoryStorage(), email: "testmail1015-1" },
 
   { manualSync: true, storage: new MemoryStorage(), email: "testmail1012ed25519", tssLib: tssLibFROST },
 ];

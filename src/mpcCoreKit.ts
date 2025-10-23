@@ -323,6 +323,11 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     if (this.isNodejsOrRN(this.options.uxMode)) {
       throw CoreKitError.oauthLoginUnsupported(`Oauth login is NOT supported in ${this.options.uxMode} mode.`);
     }
+
+    if ( this.state.factorKey ) {
+      throw CoreKitError.oauthLoginUnsupported("Instance is alreay login or rehydrated");
+    }
+
     const { importTssKey, registerExistingSFAKey } = params;
     const tkeyServiceProvider = this.torusSp;
 
@@ -677,7 +682,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
    */
   public getPubKey(): Buffer {
     const { tssPubKey } = this.state;
-    return Buffer.from(tssPubKey);
+    return tssPubKey;
   }
 
   /**
@@ -1107,6 +1112,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
           shareDescription: FactorKeyTypeShareDescription.Other,
           updateMetadata: false,
         });
+        await this.setDeviceFactor(factorKey);
       } else {
         await this.addFactorDescription({
           factorKey,
@@ -1199,6 +1205,14 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
         signatures: result.signatures,
         userInfo: result.userInfo,
       });
+
+      // update device factor if not present upon rehydration
+      if (this.options.disableHashedFactorKey) {
+        const deviceFactorKey = await this.getDeviceFactor();
+        if (!deviceFactorKey && this.state.factorKey && this.state.tssShareIndex === TssShareType.DEVICE) {
+          await this.setDeviceFactor(this.state.factorKey);
+        }
+      }
     } catch (err) {
       log.warn("failed to authorize session", err);
     }

@@ -6,7 +6,7 @@ import { UX_MODE_TYPE } from "@toruslabs/customauth";
 import { tssLib } from "@toruslabs/tss-frost-lib";
 import BN from "bn.js";
 
-import { AsyncStorage, COREKIT_STATUS, ed25519, MemoryStorage, WEB3AUTH_NETWORK, WEB3AUTH_NETWORK_TYPE, Web3AuthMPCCoreKit } from "../src";
+import { AsyncStorage, COREKIT_STATUS, ed25519, MemoryStorage, TssShareType, WEB3AUTH_NETWORK, WEB3AUTH_NETWORK_TYPE, Web3AuthMPCCoreKit } from "../src";
 import { bufferToElliptic, criticalResetAccount, mockLogin, mockLogin2 } from "./setup";
 
 type TestVariable = {
@@ -14,15 +14,19 @@ type TestVariable = {
   uxMode: UX_MODE_TYPE | "nodejs";
   manualSync?: boolean;
   email: string;
+  importedEmail: string
 };
 
-const defaultTestEmail = "testEmailForLoginEd25519";
+const defaultTestEmail = "testEmailForLoginEd25519-01";
+const importedEmail = "testEmailImportEd25519-01"
+
 const variable: TestVariable[] = [
-  { web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET, uxMode: "nodejs", email: defaultTestEmail },
+  { web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET, uxMode: "nodejs", email: defaultTestEmail, importedEmail },
   // { web3AuthNetwork: WEB3AUTH_NETWORK.MAINNET, uxMode: UX_MODE.REDIRECT, email: defaultTestEmail },
 
-  { web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET, uxMode: "nodejs", manualSync: true, email: defaultTestEmail },
+  { web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET, uxMode: "nodejs", manualSync: true, email: defaultTestEmail , importedEmail },
   // { web3AuthNetwork: WEB3AUTH_NETWORK.MAINNET, uxMode: UX_MODE.REDIRECT, manualSync: true, email: defaultTestEmail },
+
 ];
 
 const checkLogin = async (coreKitInstance: Web3AuthMPCCoreKit, accountIndex = 0) => {
@@ -39,7 +43,7 @@ const storageInstance = new MemoryStorage();
 
 variable.forEach((testVariable) => {
   const { web3AuthNetwork, uxMode, manualSync, email } = testVariable;
-  const newCoreKitInstance = () =>
+  const newCoreKitInstance = ( params: {disableSessionManager : boolean } = {disableSessionManager: true}) =>
     new Web3AuthMPCCoreKit({
       web3AuthClientId: "torus-key-test",
       web3AuthNetwork,
@@ -48,11 +52,12 @@ variable.forEach((testVariable) => {
       tssLib,
       storage: storageInstance,
       manualSync,
+      disableSessionManager: params.disableSessionManager
     });
 
-  async function resetAccount() {
+  async function resetAccount( resetEmail: string) {
     const resetInstance = newCoreKitInstance();
-    const { idToken, parsedToken } = await mockLogin(email);
+    const { idToken, parsedToken } = await mockLogin(resetEmail);
     await resetInstance.init({ handleRedirectResult: false, rehydrate: false });
     await resetInstance.loginWithJWT({
       verifier: "torus-test-health",
@@ -69,9 +74,11 @@ variable.forEach((testVariable) => {
   let checkTssShare: BN;
 
   test(`#Login Test with JWT + logout:  ${testNameSuffix}`, async (t) => {
-    await resetAccount();
+    await resetAccount(email);
+    await resetAccount(importedEmail);
+
     await t.test("#Login", async function () {
-      const coreKitInstance = newCoreKitInstance();
+      const coreKitInstance = newCoreKitInstance({disableSessionManager: false});
 
       // mocklogin
       const { idToken, parsedToken } = await mockLogin(email);
@@ -98,7 +105,7 @@ variable.forEach((testVariable) => {
     });
 
     await t.test("#relogin ", async function () {
-      const coreKitInstance = newCoreKitInstance();
+      const coreKitInstance = newCoreKitInstance({ disableSessionManager: false });
       // rehydrate
       await coreKitInstance.init({ handleRedirectResult: false });
       await checkLogin(coreKitInstance);
@@ -147,5 +154,39 @@ variable.forEach((testVariable) => {
       const valid = ed25519().verify(msgBuffer, signature, coreKitInstance.getPubKeyEd25519());
       assert(valid);
     });
+
+    await t.test("#able to export import", async function () {
+      const coreKitInstance = newCoreKitInstance();
+      await coreKitInstance.init({ handleRedirectResult: false, rehydrate: false });
+      const localToken = await mockLogin2(email);
+      await coreKitInstance.loginWithJWT({
+        verifier: "torus-test-health",
+        verifierId: email,
+        idToken: localToken.idToken,
+      });
+
+      await coreKitInstance.enableMFA({});
+      if (manualSync) {
+        await coreKitInstance.commitChanges();
+      }
+      const exportedSeed = await coreKitInstance._UNSAFE_exportTssEd25519Seed();
+
+      const coreKitInstance2 = newCoreKitInstance();
+      await coreKitInstance2.init({ handleRedirectResult: false, rehydrate: false });
+      const localToken2 = await mockLogin2(importedEmail);
+      await coreKitInstance2.loginWithJWT({
+        verifier: "torus-test-health",
+        verifierId: importedEmail,
+        idToken: localToken2.idToken,
+        importTssKey: exportedSeed.toString("hex"),
+      });
+      
+      const exportedSeed2 = await coreKitInstance2._UNSAFE_exportTssEd25519Seed();
+
+      assert(exportedSeed.toString("hex") === (exportedSeed2.toString("hex")));
+    });
+
+
+
   });
 });

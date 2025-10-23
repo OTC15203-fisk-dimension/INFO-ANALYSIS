@@ -682,7 +682,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
    */
   public getPubKey(): Buffer {
     const { tssPubKey } = this.state;
-    return tssPubKey;
+    return Buffer.from(tssPubKey);
   }
 
   /**
@@ -761,7 +761,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     }
 
     // Client lib expects pub key in XY-format, base64-encoded.
-    const tssPubKeyBase64 = tssPubKey.toSEC1(secp256k1).subarray(1).toString("base64");
+    const tssPubKeyBase64 = Buffer.from(tssPubKey.toSEC1(secp256k1).subarray(1)).toString("base64");
 
     const client = new Client(
       currentSession,
@@ -801,7 +801,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     this.wasmLib = await this.loadTssWasm();
     if (this.keyType === KeyType.secp256k1) {
       const sig = await this.sign_ECDSA_secp256k1(data, hashed, secp256k1Precompute);
-      return Buffer.concat([new Uint8Array(sig.r), new Uint8Array(sig.s), new Uint8Array([sig.v])]);
+      return Buffer.concat([sig.r, sig.s, Buffer.from([sig.v])]);
     } else if (this.keyType === KeyType.ed25519) {
       return this.sign_ed25519(data, hashed);
     }
@@ -898,7 +898,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       await this.tKey._syncShareMetadata();
       await this.tKey.syncLocalMetadataTransitions();
 
-      if (this.sessionId) {
+      if (this.sessionManager && this.sessionId) {
         const payload: SessionData = {
           postBoxKey: this.state.postBoxKey,
           postboxKeyNodeIndexes: this.state.postboxKeyNodeIndexes || [],
@@ -1257,7 +1257,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
         postboxKeyNodeIndexes: postboxKeyNodeIndexes || [],
         factorKey: factorKey?.toString("hex"),
         tssShareIndex: tssShareIndex as number,
-        tssPubKey: tssPubKey.toString("hex"),
+        tssPubKey: Buffer.from(tssPubKey).toString("hex"),
         signatures: this.signatures,
         userInfo,
       };
@@ -1534,7 +1534,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       clientXCoord,
       clientShareAdjustedHex,
       pubKeyHex,
-      new Uint8Array(data),
+      data,
       serverCoefficientsHex,
       this.socketTransports
     );

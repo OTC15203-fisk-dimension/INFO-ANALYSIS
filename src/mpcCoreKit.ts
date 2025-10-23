@@ -897,6 +897,19 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       // manual call syncLocalMetadataTransitions() required to sync local transitions to storage
       await this.tKey._syncShareMetadata();
       await this.tKey.syncLocalMetadataTransitions();
+
+      if (this.sessionId) {
+        const payload: SessionData = {
+          postBoxKey: this.state.postBoxKey,
+          postboxKeyNodeIndexes: this.state.postboxKeyNodeIndexes || [],
+          factorKey: this.state.factorKey?.toString("hex"),
+          tssShareIndex: this.state.tssShareIndex as number,
+          tssPubKey: this.state.tssPubKey?.toString("hex"),
+          signatures: this.signatures,
+          userInfo: this.state.userInfo,
+        };
+        this.sessionManager.updateSession(payload);
+      }
     } catch (error: unknown) {
       log.error("sync metadata error", error);
       throw error;
@@ -1214,7 +1227,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
         }
       }
     } catch (err) {
-      log.warn("failed to authorize session", err);
+      log.warn("failed to authorize session please use new", err);
     }
   }
 

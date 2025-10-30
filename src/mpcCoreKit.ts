@@ -1178,20 +1178,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
     this.updateState({ tssShareIndex, tssPubKey, factorKey });
 
-    if (this.sessionManager && this.sessionId) {
-      const payload: SessionData = {
-        postBoxKey: this.state.postBoxKey,
-        postboxKeyNodeIndexes: this.state.postboxKeyNodeIndexes || [],
-        factorKey: this.state.factorKey?.toString("hex"),
-        tssShareIndex: this.state.tssShareIndex as number,
-        tssPubKey: this.state.tssPubKey?.toString("hex"),
-        signatures: this.signatures,
-        userInfo: this.state.userInfo,
-      };
-      this.sessionManager.updateSession(payload);
-    } else {
-      await this.createSession();
-    }
+    await this.createSession();
   }
 
   private checkReady() {

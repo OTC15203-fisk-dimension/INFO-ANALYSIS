@@ -523,15 +523,17 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   public async inputFactorKey(factorKey: BN): Promise<void> {
     this.checkReady();
     try {
-      // input tkey device share when required share > 0 ( or not reconstructed )
-      // assumption tkey shares will not changed
+      // always check for valid factor key
+      const factorKeyPrivate = factorKeyCurve.keyFromPrivate(factorKey.toBuffer());
+      const factorPubX = factorKeyPrivate.getPublic().getX().toString("hex").padStart(64, "0");
+      const factorEncExist = this.tkey.metadata.factorEncs?.[this.tkey.tssTag]?.[factorPubX];
+      if (!factorEncExist) {
+        throw CoreKitError.providedFactorKeyInvalid("Invalid FactorKey provided. Failed to input factor key.");
+      }
+
+      // input tkey device share when required share > 0 ( or tkey is not yet reconstructed )
+      // assumption tkey shares will never changed
       if (!this.tKey.secp256k1Key) {
-        const factorKeyPrivate = factorKeyCurve.keyFromPrivate(factorKey.toBuffer());
-        const factorPubX = factorKeyPrivate.getPublic().getX().toString("hex").padStart(64, "0");
-        const factorEncExist = this.tkey.metadata.factorEncs?.[this.tkey.tssTag]?.[factorPubX];
-        if (!factorEncExist) {
-          throw CoreKitError.providedFactorKeyInvalid("Invalid FactorKey provided. Failed to input factor key.");
-        }
         const factorKeyMetadata = await this.getFactorKeyMetadata(factorKey);
         await this.tKey.inputShareStoreSafe(factorKeyMetadata, true);
       }
@@ -897,19 +899,6 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
       // manual call syncLocalMetadataTransitions() required to sync local transitions to storage
       await this.tKey._syncShareMetadata();
       await this.tKey.syncLocalMetadataTransitions();
-
-      if (this.sessionManager && this.sessionId) {
-        const payload: SessionData = {
-          postBoxKey: this.state.postBoxKey,
-          postboxKeyNodeIndexes: this.state.postboxKeyNodeIndexes || [],
-          factorKey: this.state.factorKey?.toString("hex"),
-          tssShareIndex: this.state.tssShareIndex as number,
-          tssPubKey: this.state.tssPubKey?.toString("hex"),
-          signatures: this.signatures,
-          userInfo: this.state.userInfo,
-        };
-        this.sessionManager.updateSession(payload);
-      }
     } catch (error: unknown) {
       log.error("sync metadata error", error);
       throw error;
@@ -1180,7 +1169,22 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
     this.updateState({ tssShareIndex, tssPubKey, factorKey });
 
-    await this.createSession();
+
+    if (this.sessionManager && this.sessionId) {
+      const payload: SessionData = {
+        postBoxKey: this.state.postBoxKey,
+        postboxKeyNodeIndexes: this.state.postboxKeyNodeIndexes || [],
+        factorKey: this.state.factorKey?.toString("hex"),
+        tssShareIndex: this.state.tssShareIndex as number,
+        tssPubKey: this.state.tssPubKey?.toString("hex"),
+        signatures: this.signatures,
+        userInfo: this.state.userInfo,
+      };
+      this.sessionManager.updateSession(payload);
+    } else {
+      await this.createSession();
+    }
+
   }
 
   private checkReady() {

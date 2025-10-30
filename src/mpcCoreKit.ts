@@ -1,4 +1,14 @@
-import { BNString, KeyType, ONE_KEY_DELETE_NONCE, Point, secp256k1, SHARE_DELETED, ShareStore, StringifiedType } from "@tkey/common-types";
+import {
+  BNString,
+  KEY_NOT_FOUND,
+  KeyType,
+  ONE_KEY_DELETE_NONCE,
+  Point,
+  secp256k1,
+  SHARE_DELETED,
+  ShareStore,
+  StringifiedType,
+} from "@tkey/common-types";
 import { CoreError } from "@tkey/core";
 import { ShareSerializationModule } from "@tkey/share-serialization";
 import { TorusStorageLayer } from "@tkey/storage-layer-torus";
@@ -612,7 +622,6 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
       const hashedFactorPub = getPubKeyPoint(hashedFactorKey, factorKeyCurve);
       await this.deleteFactor(hashedFactorPub, hashedFactorKey);
-      await this.deleteMetadataShareBackup(hashedFactorKey);
 
       // only recovery factor = true
       let backupFactorKey;
@@ -1169,7 +1178,6 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
     this.updateState({ tssShareIndex, tssPubKey, factorKey });
 
-
     if (this.sessionManager && this.sessionId) {
       const payload: SessionData = {
         postBoxKey: this.state.postBoxKey,
@@ -1184,7 +1192,6 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     } else {
       await this.createSession();
     }
-
   }
 
   private checkReady() {
@@ -1294,7 +1301,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   private async getFactorKeyMetadata(factorKey: BN): Promise<ShareStore> {
     this.checkReady();
     const factorKeyMetadata = await this.tKey?.readMetadata<StringifiedType>(factorKey);
-    if (!factorKeyMetadata || factorKeyMetadata.message === "KEY_NOT_FOUND") {
+    if (!factorKeyMetadata || factorKeyMetadata.message === KEY_NOT_FOUND || factorKeyMetadata.message === SHARE_DELETED) {
       throw CoreKitError.noMetadataFound();
     }
     return ShareStore.fromJSON(factorKeyMetadata);

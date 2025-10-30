@@ -171,6 +171,7 @@ variable.forEach((testVariable) => {
       }
       const exportedSeed = await coreKitInstance._UNSAFE_exportTssEd25519Seed();
 
+      // import tss key into mpc corekit
       const coreKitInstance2 = newCoreKitInstance();
       await coreKitInstance2.init({ handleRedirectResult: false, rehydrate: false });
       const localToken2 = await mockLogin2(importedEmail);
@@ -180,13 +181,13 @@ variable.forEach((testVariable) => {
         idToken: localToken2.idToken,
         importTssKey: exportedSeed.toString("hex"),
       });
+      if (manualSync) {
+        await coreKitInstance2.commitChanges();
+      }
       
       const exportedSeed2 = await coreKitInstance2._UNSAFE_exportTssEd25519Seed();
 
       assert(exportedSeed.toString("hex") === (exportedSeed2.toString("hex")));
     });
-
-
-
   });
 });

@@ -1350,19 +1350,21 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   }
 
   private async deleteMetadataShareBackup(factorKey: BN): Promise<void> {
-    await this.tKey.addLocalMetadataTransitions({ input: [{ message: SHARE_DELETED, dateAdded: Date.now() }], privKey: [factorKey] });
-    if (!this.tkey?.manualSync) await this.tkey?.syncLocalMetadataTransitions();
+    await this.atomicSync(async () => {
+      await this.tKey.addLocalMetadataTransitions({ input: [{ message: SHARE_DELETED, dateAdded: Date.now() }], privKey: [factorKey] });
+    });
   }
 
   private async backupMetadataShare(factorKey: BN) {
     const metadataShare = await this.getMetadataShare();
 
-    // Set metadata for factor key backup
-    await this.tKey?.addLocalMetadataTransitions({
-      input: [metadataShare],
-      privKey: [factorKey],
+    await this.atomicSync(async () => {
+      // Set metadata for factor key backup
+      await this.tKey?.addLocalMetadataTransitions({
+        input: [metadataShare],
+        privKey: [factorKey],
+      });
     });
-    if (!this.tkey?.manualSync) await this.tkey?.syncLocalMetadataTransitions();
   }
 
   private async addFactorDescription(args: {

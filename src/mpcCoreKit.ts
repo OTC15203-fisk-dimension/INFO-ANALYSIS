@@ -1225,7 +1225,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
         }
       }
     } catch (err) {
-      log.warn("failed to authorize session please use new", err);
+      log.warn("failed to authorize session please use new instance without rehydration", err);
     }
   }
 

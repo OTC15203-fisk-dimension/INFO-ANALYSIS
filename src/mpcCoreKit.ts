@@ -335,7 +335,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     }
 
     if (this.state.factorKey) {
-      throw CoreKitError.oauthLoginUnsupported("Instance is alreay login or rehydrated");
+      throw CoreKitError.oauthLoginUnsupported("Instance is already logged in or rehydrated");
     }
 
     const { importTssKey, registerExistingSFAKey } = params;
@@ -404,6 +404,11 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
   public async loginWithJWT(params: JWTLoginParams): Promise<void> {
     this.checkReady();
+
+    if (this.state.factorKey) {
+      throw CoreKitError.oauthLoginUnsupported("Instance is already logged in or rehydrated");
+    }
+
     const { prefetchTssPublicKeys = 1 } = params;
     if (prefetchTssPublicKeys > 3) {
       throw CoreKitError.prefetchValueExceeded(`The prefetch value '${prefetchTssPublicKeys}' exceeds the maximum allowed limit of 3.`);

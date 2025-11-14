@@ -280,7 +280,7 @@ variable.forEach((testVariable) => {
       const deviceFactorKey3 = await coreKitInstance3.getDeviceFactor();
       await coreKitInstance3.inputFactorKey(new BN(deviceFactorKey3, "hex"));
 
-      coreKitInstance.setTssWalletIndex(0);
+      coreKitInstance3.setTssWalletIndex(0);
       const pubkey3index0 = bufferToElliptic(coreKitInstance3.getPubKey());
       coreKitInstance3.setTssWalletIndex(1);
       const pubkey3index1 = bufferToElliptic(coreKitInstance3.getPubKey());

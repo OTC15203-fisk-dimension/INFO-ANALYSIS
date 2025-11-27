@@ -2,7 +2,6 @@ import assert from "node:assert";
 import test from "node:test";
 
 import { tssLib as tssLibDKLS } from "@toruslabs/tss-dkls-lib";
-import { tssLib as tssLibFROST } from "@toruslabs/tss-frost-lib";
 
 import {  MemoryStorage, sigToRSV, TssLibType, TssShareType, WEB3AUTH_NETWORK, Web3AuthMPCCoreKit } from "../src";
 import { bufferToElliptic, criticalResetAccount, mockLogin  } from "./setup";
@@ -55,10 +54,7 @@ export const ImportTest = async (testVariable: ImportKeyTestVariable) => {
   async function resetAccount(email: string) {
     const kit = await newCoreKitInstance(email);
     console.log('tss pub key', kit.state.tssPubKey)
-    await criticalResetAccount(kit);
-    if (testVariable.manualSync) {
-      await kit.commitChanges();
-    }
+    await criticalResetAccount(kit, testVariable.manualSync);
     await kit.logout();
     // await new AsyncStorage(kit._storageKey, storageInstance).resetStore();
   }

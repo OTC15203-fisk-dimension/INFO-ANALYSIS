@@ -6,7 +6,7 @@ import { UX_MODE_TYPE } from "@toruslabs/customauth";
 import { tssLib } from "@toruslabs/tss-frost-lib";
 import BN from "bn.js";
 
-import { AsyncStorage, COREKIT_STATUS, ed25519, MemoryStorage, TssShareType, WEB3AUTH_NETWORK, WEB3AUTH_NETWORK_TYPE, Web3AuthMPCCoreKit } from "../src";
+import { AsyncStorage, COREKIT_STATUS, ed25519, MemoryStorage,  WEB3AUTH_NETWORK, WEB3AUTH_NETWORK_TYPE, Web3AuthMPCCoreKit } from "../src";
 import { bufferToElliptic, criticalResetAccount, mockLogin, mockLogin2 } from "./setup";
 
 type TestVariable = {
@@ -64,7 +64,7 @@ variable.forEach((testVariable) => {
       verifierId: parsedToken.email,
       idToken,
     });
-    await criticalResetAccount(resetInstance);
+    await criticalResetAccount(resetInstance, manualSync);
     await new AsyncStorage(resetInstance._storageKey, storageInstance).resetStore();
   }
 

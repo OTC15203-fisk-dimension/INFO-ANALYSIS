@@ -78,7 +78,7 @@ variable.forEach((testVariable) => {
         verifierId: parsedToken.email,
         idToken,
       });
-      await criticalResetAccount(resetInstance);
+      await criticalResetAccount(resetInstance, manualSync);
       await new AsyncStorage(resetInstance._storageKey, storageInstance).resetStore();
     }
 

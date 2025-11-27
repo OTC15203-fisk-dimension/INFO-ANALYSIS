@@ -75,7 +75,7 @@ export const FactorManipulationTest = async (testVariable: FactorTestVariable) =
 
   async function beforeTest() {
     const resetInstance = await newInstance();
-    await criticalResetAccount(resetInstance);
+    await criticalResetAccount(resetInstance, testVariable.manualSync);
     await resetInstance.logout();
     await new AsyncStorage(resetInstance._storageKey, testVariable.storage).resetStore();
   }

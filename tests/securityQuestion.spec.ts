@@ -29,7 +29,7 @@ export const TssSecurityQuestionsTest = async (newInstance: () => Promise<Web3Au
   test(`#Tss Security Question - ${testVariable.manualSync} `, async function (t) {
     async function beforeTest() {
       const coreKitInstance = await newInstance();
-      await criticalResetAccount(coreKitInstance);
+      await criticalResetAccount(coreKitInstance, testVariable.manualSync);
       await coreKitInstance.logout();
 
       await new AsyncStorage(coreKitInstance._storageKey, storageInstance).resetStore();

@@ -31,6 +31,7 @@ export const criticalResetAccount = async (coreKitInstance: Web3AuthMPCCoreKit, 
   }
 
   if (coreKitInstance.tKey.secp256k1Key) {
+    await coreKitInstance.commitChanges();
     await coreKitInstance.tKey.CRITICAL_deleteTkey();
   } else {
     await coreKitInstance.tKey.storageLayer.setMetadata({

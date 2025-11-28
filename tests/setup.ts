@@ -38,7 +38,7 @@ export const criticalResetAccount = async (coreKitInstance: Web3AuthMPCCoreKit, 
       input: { message: "KEY_NOT_FOUND" },
     });
     if (manualSync) {
-      await coreKitInstance.commitChanges();
+      await coreKitInstance.tKey.syncLocalMetadataTransitions();
     }
   }
 };

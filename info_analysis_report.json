@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-02-11T11:50:08.819097+00:00",
+  "inputs": {
+    "pr_repo": "THIRD-EYE-DOME/Omega9",
+    "pr_number": 1,
+    "run_repo": "FISK-DIMENSION/Omega9",
+    "run_id": 21902224487
+  },
+  "environment": {
+    "gh_installed": false
+  },
+  "pr": {
+    "fetched": false,
+    "error": "gh CLI not installed",
+    "data": null
+  },
+  "run": {
+    "logs_fetched": false,
+    "error": "gh CLI not installed",
+    "log_excerpt_tail": null,
+    "diagnostics": []
+  },
+  "workflow_scan": {
+    "issues": []
+  }
+}

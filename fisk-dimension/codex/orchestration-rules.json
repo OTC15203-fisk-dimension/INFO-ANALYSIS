@@ -1,0 +1,19 @@
+{
+  "hierarchy": {
+    "omega9": ["core", "orchestrator"],
+    "hosts": ["podcast-primary", "tech-status", "dimension-character"],
+    "utilities": ["cuesheet", "compliance", "distribution"]
+  },
+  "environmentModes": ["dev", "stage", "prod", "sandbox", "quarantine"],
+  "tiers": {
+    "tier0": "read/list/query/search",
+    "tier1": "write in sandbox/dev-stage only",
+    "tier2": "admin-only, Sophia approval + break-glass"
+  },
+  "globalConstraints": {
+    "denyByDefault": true,
+    "wildcardToolsAllowedInProd": false,
+    "immutableAudit": true,
+    "driftTriggersSafeMode": true
+  }
+}

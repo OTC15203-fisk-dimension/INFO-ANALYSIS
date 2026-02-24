@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "agentMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" },
+        { "fieldPath": "from", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

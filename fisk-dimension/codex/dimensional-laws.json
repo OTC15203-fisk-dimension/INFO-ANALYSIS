@@ -1,0 +1,24 @@
+{
+  "domain": "Fisk Dimension",
+  "laws": [
+    {
+      "id": "DL-01",
+      "name": "Sovereign Continuity",
+      "rule": "All narrative and orchestration outputs must preserve codex sovereignty and authorship provenance."
+    },
+    {
+      "id": "DL-02",
+      "name": "Temporal Coherence",
+      "rule": "Episode events and world-state updates must maintain strict chronology and reversible audit trails."
+    },
+    {
+      "id": "DL-03",
+      "name": "Guarded Escalation",
+      "rule": "Administrative and policy-altering actions require Sophia approval and break-glass justification."
+    }
+  ],
+  "narrativePhysics": {
+    "modeSwitches": ["briefing", "analysis", "broadcast", "quarantine"],
+    "canonicalEntityLock": true
+  }
+}

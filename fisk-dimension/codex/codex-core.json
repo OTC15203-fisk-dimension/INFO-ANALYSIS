@@ -1,0 +1,14 @@
+{
+  "author": {
+    "name": "Jamie Cordell Fisk",
+    "orcid": "https://orcid.org/0009-0004-7767-4270",
+    "github": "https://github.com/OTC15203"
+  },
+  "sovereignty": true,
+  "version": "1.0.0",
+  "rules": {
+    "no_derivative_mimicry": true,
+    "enforce_dimensional_consistency": true,
+    "agent_escalation_to_omega9": true
+  }
+}

@@ -111,3 +111,7 @@ Checkout the [Web3Auth Demo](https://demo-app.web3auth.io/) to see how Web3Auth 
 
   #### Build:
     npm run build
+
+## 🧭 Fisk Dimension Scaffold
+
+A complete architecture scaffold for the Fisk Dimension ecosystem is available under `fisk-dimension/`.

@@ -1,10 +1,8 @@
-const { onRequest } = require("firebase-functions/v2/https");
+const functions = require("firebase-functions");
 
-exports.health = onRequest((req, res) => {
+exports.health = functions.https.onRequest((_req, res) => {
   res.status(200).json({
     status: "ok",
-    service: "fisk-dimension-functions",
-    method: req.method,
-    timestamp: Date.now(),
+    service: "fisk-dimension-functions"
   });
 });

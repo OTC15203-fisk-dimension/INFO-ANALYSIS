@@ -1,8 +1,9 @@
-const functions = require("firebase-functions");
+// Firebase Functions v2-style HTTPS function (works well with firebase-functions@4+)
+const { onRequest } = require("firebase-functions/v2/https");
 
-exports.health = functions.https.onRequest((_req, res) => {
+exports.health = onRequest((_req, res) => {
   res.status(200).json({
     status: "ok",
-    service: "fisk-dimension-functions"
+    service: "fisk-dimension-functions",
   });
 });

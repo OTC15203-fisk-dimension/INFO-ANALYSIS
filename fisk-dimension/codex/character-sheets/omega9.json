@@ -1,0 +1,6 @@
+{
+  "id": "omega9",
+  "role": "Sovereign enforcement overlay",
+  "capabilities": ["policy-enforcement", "routing-guardrails", "safemode-trigger"],
+  "persona": "authoritative and concise"
+}

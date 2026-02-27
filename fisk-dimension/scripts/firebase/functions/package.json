@@ -1,0 +1,17 @@
+{
+  "name": "fisk-dimension-functions",
+  "private": true,
+  "description": "Firebase Cloud Functions for the Fisk Dimension scaffold.",
+  "main": "index.js",
+  "engines": {
+    "node": "18"
+  },
+  "scripts": {
+    "lint": "echo \"(add eslint if/when desired)\"",
+    "test": "echo \"(add tests if/when desired)\""
+  },
+  "dependencies": {
+    "firebase-functions": "^4.0.0",
+    "firebase-admin": "^11.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMessage",
+  "type": "object",
+  "required": ["id", "from", "to", "role", "intent", "timestamp"],
+  "properties": {
+    "id": { "type": "string" },
+    "from": { "type": "string" },
+    "to": { "type": "string" },
+    "role": { "type": "string" },
+    "intent": { "type": "string" },
+    "episode_id": { "type": "string" },
+    "segment": { "type": "string" },
+    "codex_profile": { "type": "string" },
+    "constraints": { "type": "object" },
+    "payload": { "type": "object" },
+    "timestamp": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

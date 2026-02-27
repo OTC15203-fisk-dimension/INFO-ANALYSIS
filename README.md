@@ -97,7 +97,7 @@ Checkout the [Web3Auth Demo](https://demo-app.web3auth.io/) to see how Web3Auth 
 
 ## 💬 Troubleshooting and Support
 
-- Have a look at our [Community Portal](https://community.web3auth.io/) to see if anyone has any questions or issues you might be having. Feel free to reate new topics and we'll help you out as soon as possible.
+- Have a look at our [Community Portal](https://community.web3auth.io/) to see if anyone has any questions or issues you might be having. Feel free to create new topics and we'll help you out as soon as possible.
 - Checkout our [Troubleshooting Documentation Page](https://web3auth.io/docs/troubleshooting) to know the common issues and solutions.
 - For Priority Support, please have a look at our [Pricing Page](https://web3auth.io/pricing.html) for the plan that suits your needs.
 
@@ -111,3 +111,7 @@ Checkout the [Web3Auth Demo](https://demo-app.web3auth.io/) to see how Web3Auth 
 
   #### Build:
     npm run build
+
+## 🧭 Fisk Dimension Scaffold
+
+A complete architecture scaffold for the Fisk Dimension ecosystem is available under `fisk-dimension/`.

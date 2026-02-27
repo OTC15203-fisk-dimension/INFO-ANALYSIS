@@ -1,0 +1,7 @@
+{
+  "entities": [
+    { "id": "nexus-tiger", "type": "avatar", "stateModel": ["listening", "thinking", "speaking"] },
+    { "id": "leoleo", "type": "avatar", "stateModel": ["listening", "thinking", "speaking"] },
+    { "id": "sophia-key", "type": "avatar", "stateModel": ["listening", "thinking", "speaking"] }
+  ]
+}

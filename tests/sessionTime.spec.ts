@@ -76,7 +76,7 @@ variable.forEach(async (testVariable) => {
     });
 
     async function beforeTest() {
-      if (coreKitInstance.status === COREKIT_STATUS.INITIALIZED) await criticalResetAccount(coreKitInstance);
+      if (coreKitInstance.status === COREKIT_STATUS.INITIALIZED) await criticalResetAccount(coreKitInstance, manualSync);
     }
 
     t.after(async function () {
@@ -86,7 +86,7 @@ variable.forEach(async (testVariable) => {
 
     await beforeTest();
 
-    await t.test("`sessionTime` should be equal to `sessionTokenDuration` from #Login", async function (t) {
+    await t.test("`sessionTime` should be equal to `sessionTokenDuration` from #Login", async function () {
       // mocklogin
       const { idToken, parsedToken } = await mockLogin(email);
 

@@ -28,7 +28,7 @@ export const ImportSFATest = async (testVariable: ImportKeyTestVariable) => {
 
   async function resetAccount(email: string) {
     const kit = await newCoreKitInstance(email);
-    await criticalResetAccount(kit);
+    await criticalResetAccount(kit, testVariable.manualSync);
     await kit.logout();
     await new AsyncStorage(kit._storageKey, storageInstance).resetStore();
   }

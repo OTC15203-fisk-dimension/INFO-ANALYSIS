@@ -19,7 +19,7 @@ type TestVariable = {
   email: string;
 };
 
-const defaultTestEmail = "testEmailForLogin";
+const defaultTestEmail = "testEmailForLogin-disableHashedFactorKey";
 const variable: TestVariable[] = [
   { web3AuthNetwork: WEB3AUTH_NETWORK.DEVNET, uxMode: "nodejs", email: defaultTestEmail },
   // { web3AuthNetwork: WEB3AUTH_NETWORK.MAINNET, uxMode: UX_MODE.REDIRECT, email: defaultTestEmail },
@@ -51,6 +51,8 @@ variable.forEach((testVariable) => {
       tssLib,
       storage: storageInstance,
       manualSync,
+      disableHashedFactorKey: true,
+      disableSessionManager: true
     });
 
   const testNameSuffix = JSON.stringify(testVariable);
@@ -110,9 +112,7 @@ variable.forEach((testVariable) => {
 
     await t.test("#relogin ", async function () {
       const coreKitInstance = newCoreKitInstance();
-      // rehydrate
-      await coreKitInstance.init({ handleRedirectResult: false });
-      await checkLogin(coreKitInstance);
+
 
       // logout
       await coreKitInstance.logout();
@@ -133,6 +133,8 @@ variable.forEach((testVariable) => {
         idToken,
       });
 
+      const deviceFactorKey = await coreKitInstance.getDeviceFactor();
+      await coreKitInstance.inputFactorKey(new BN(deviceFactorKey, "hex"));
       // get key details
       await checkLogin(coreKitInstance);
       const newPubKey = bufferToElliptic(coreKitInstance.getPubKey());
@@ -151,6 +153,10 @@ variable.forEach((testVariable) => {
         verifierId: email,
         idToken: localToken.idToken,
       });
+
+      const deviceFactorKey = await coreKitInstance.getDeviceFactor();
+      await coreKitInstance.inputFactorKey(new BN(deviceFactorKey, "hex"));
+
       const msg = "hello world";
       const msgBuffer = Buffer.from(msg);
       const msgHash = keccak256(msgBuffer);
@@ -212,6 +218,9 @@ variable.forEach((testVariable) => {
         idToken: idToken2,
       });
 
+      const deviceFactorKey = await coreKitInstance.getDeviceFactor();
+      await coreKitInstance.inputFactorKey(new BN(deviceFactorKey, "hex"));
+
       const secp256k1 = new EC("secp256k1");
       await coreKitInstance.setTssWalletIndex(0);
 
@@ -268,7 +277,10 @@ variable.forEach((testVariable) => {
         idToken: idToken3,
       });
 
-      coreKitInstance.setTssWalletIndex(0);
+      const deviceFactorKey3 = await coreKitInstance3.getDeviceFactor();
+      await coreKitInstance3.inputFactorKey(new BN(deviceFactorKey3, "hex"));
+
+      coreKitInstance3.setTssWalletIndex(0);
       const pubkey3index0 = bufferToElliptic(coreKitInstance3.getPubKey());
       coreKitInstance3.setTssWalletIndex(1);
       const pubkey3index1 = bufferToElliptic(coreKitInstance3.getPubKey());

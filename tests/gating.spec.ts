@@ -60,7 +60,7 @@ variable.forEach((testVariable) => {
   const testNameSuffix = testVariable.description;
   test(`#Gating test :  ${testNameSuffix}`, async (t) => {
     async function beforeTest() {
-      if (coreKitInstance.status === COREKIT_STATUS.INITIALIZED) await criticalResetAccount(coreKitInstance);
+      if (coreKitInstance.status === COREKIT_STATUS.INITIALIZED) await criticalResetAccount(coreKitInstance, manualSync);
     }
 
     t.after(async function () {

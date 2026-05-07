@@ -22,7 +22,7 @@ export const mockLogin2 = async (email: string) => {
   return { idToken, parsedToken };
 };
 
-export const criticalResetAccount = async (coreKitInstance: Web3AuthMPCCoreKit): Promise<void> => {
+export const criticalResetAccount = async (coreKitInstance: Web3AuthMPCCoreKit, manualSync: boolean): Promise<void> => {
   // This is a critical function that should only be used for testing purposes
   // Resetting your account means clearing all the metadata associated with it from the metadata server
   // The key details will be deleted from our server and you will not be able to recover your account
@@ -31,12 +31,16 @@ export const criticalResetAccount = async (coreKitInstance: Web3AuthMPCCoreKit):
   }
 
   if (coreKitInstance.tKey.secp256k1Key) {
+    await coreKitInstance.commitChanges();
     await coreKitInstance.tKey.CRITICAL_deleteTkey();
   } else {
     await coreKitInstance.tKey.storageLayer.setMetadata({
       privKey: new BN(coreKitInstance.state.postBoxKey!, "hex"),
       input: { message: "KEY_NOT_FOUND" },
     });
+    if (manualSync) {
+      await coreKitInstance.tKey.syncLocalMetadataTransitions();
+    }
   }
 };
 
@@ -114,7 +118,7 @@ export const newCoreKitLogInInstance = async ({
   });
 
   const { idToken, parsedToken } = login ? await login(email) : await mockLogin(email);
-  await instance.init();
+  await instance.init({ handleRedirectResult: false, rehydrate: false });
   await instance.loginWithJWT({
     verifier: "torus-test-health",
     verifierId: parsedToken.email,

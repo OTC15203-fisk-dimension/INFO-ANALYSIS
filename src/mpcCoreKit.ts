@@ -1,4 +1,14 @@
-import { BNString, KeyType, ONE_KEY_DELETE_NONCE, Point, secp256k1, SHARE_DELETED, ShareStore, StringifiedType } from "@tkey/common-types";
+import {
+  BNString,
+  KEY_NOT_FOUND,
+  KeyType,
+  ONE_KEY_DELETE_NONCE,
+  Point,
+  secp256k1,
+  SHARE_DELETED,
+  ShareStore,
+  StringifiedType,
+} from "@tkey/common-types";
 import { CoreError } from "@tkey/core";
 import { ShareSerializationModule } from "@tkey/share-serialization";
 import { TorusStorageLayer } from "@tkey/storage-layer-torus";
@@ -323,6 +333,11 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
     if (this.isNodejsOrRN(this.options.uxMode)) {
       throw CoreKitError.oauthLoginUnsupported(`Oauth login is NOT supported in ${this.options.uxMode} mode.`);
     }
+
+    if (this.state.factorKey) {
+      throw CoreKitError.oauthLoginUnsupported("Instance is already logged in or rehydrated");
+    }
+
     const { importTssKey, registerExistingSFAKey } = params;
     const tkeyServiceProvider = this.torusSp;
 
@@ -389,6 +404,11 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
   public async loginWithJWT(params: JWTLoginParams): Promise<void> {
     this.checkReady();
+
+    if (this.state.factorKey) {
+      throw CoreKitError.oauthLoginUnsupported("Instance is already logged in or rehydrated");
+    }
+
     const { prefetchTssPublicKeys = 1 } = params;
     if (prefetchTssPublicKeys > 3) {
       throw CoreKitError.prefetchValueExceeded(`The prefetch value '${prefetchTssPublicKeys}' exceeds the maximum allowed limit of 3.`);
@@ -518,15 +538,17 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   public async inputFactorKey(factorKey: BN): Promise<void> {
     this.checkReady();
     try {
-      // input tkey device share when required share > 0 ( or not reconstructed )
-      // assumption tkey shares will not changed
+      // always check for valid factor key
+      const factorKeyPrivate = factorKeyCurve.keyFromPrivate(factorKey.toBuffer());
+      const factorPubX = factorKeyPrivate.getPublic().getX().toString("hex").padStart(64, "0");
+      const factorEncExist = this.tkey.metadata.factorEncs?.[this.tkey.tssTag]?.[factorPubX];
+      if (!factorEncExist) {
+        throw CoreKitError.providedFactorKeyInvalid("Invalid FactorKey provided. Failed to input factor key.");
+      }
+
+      // input tkey device share when required share > 0 ( or tkey is not yet reconstructed )
+      // assumption tkey shares will never changed
       if (!this.tKey.secp256k1Key) {
-        const factorKeyPrivate = factorKeyCurve.keyFromPrivate(factorKey.toBuffer());
-        const factorPubX = factorKeyPrivate.getPublic().getX().toString("hex").padStart(64, "0");
-        const factorEncExist = this.tkey.metadata.factorEncs?.[this.tkey.tssTag]?.[factorPubX];
-        if (!factorEncExist) {
-          throw CoreKitError.providedFactorKeyInvalid("Invalid FactorKey provided. Failed to input factor key.");
-        }
         const factorKeyMetadata = await this.getFactorKeyMetadata(factorKey);
         await this.tKey.inputShareStoreSafe(factorKeyMetadata, true);
       }
@@ -605,7 +627,6 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
 
       const hashedFactorPub = getPubKeyPoint(hashedFactorKey, factorKeyCurve);
       await this.deleteFactor(hashedFactorPub, hashedFactorKey);
-      await this.deleteMetadataShareBackup(hashedFactorKey);
 
       // only recovery factor = true
       let backupFactorKey;
@@ -1107,6 +1128,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
           shareDescription: FactorKeyTypeShareDescription.Other,
           updateMetadata: false,
         });
+        await this.setDeviceFactor(factorKey);
       } else {
         await this.addFactorDescription({
           factorKey,
@@ -1199,8 +1221,16 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
         signatures: result.signatures,
         userInfo: result.userInfo,
       });
+
+      // update device factor if not present upon rehydration
+      if (this.options.disableHashedFactorKey) {
+        const deviceFactorKey = await this.getDeviceFactor();
+        if (!deviceFactorKey && this.state.factorKey && this.state.tssShareIndex === TssShareType.DEVICE) {
+          await this.setDeviceFactor(this.state.factorKey);
+        }
+      }
     } catch (err) {
-      log.warn("failed to authorize session", err);
+      log.warn("failed to authorize session please use new instance without rehydration", err);
     }
   }
 
@@ -1263,7 +1293,7 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   private async getFactorKeyMetadata(factorKey: BN): Promise<ShareStore> {
     this.checkReady();
     const factorKeyMetadata = await this.tKey?.readMetadata<StringifiedType>(factorKey);
-    if (!factorKeyMetadata || factorKeyMetadata.message === "KEY_NOT_FOUND") {
+    if (!factorKeyMetadata || factorKeyMetadata.message === KEY_NOT_FOUND || factorKeyMetadata.message === SHARE_DELETED) {
       throw CoreKitError.noMetadataFound();
     }
     return ShareStore.fromJSON(factorKeyMetadata);
@@ -1325,19 +1355,21 @@ export class Web3AuthMPCCoreKit implements ICoreKit {
   }
 
   private async deleteMetadataShareBackup(factorKey: BN): Promise<void> {
-    await this.tKey.addLocalMetadataTransitions({ input: [{ message: SHARE_DELETED, dateAdded: Date.now() }], privKey: [factorKey] });
-    if (!this.tkey?.manualSync) await this.tkey?.syncLocalMetadataTransitions();
+    await this.atomicSync(async () => {
+      await this.tKey.addLocalMetadataTransitions({ input: [{ message: SHARE_DELETED, dateAdded: Date.now() }], privKey: [factorKey] });
+    });
   }
 
   private async backupMetadataShare(factorKey: BN) {
     const metadataShare = await this.getMetadataShare();
 
-    // Set metadata for factor key backup
-    await this.tKey?.addLocalMetadataTransitions({
-      input: [metadataShare],
-      privKey: [factorKey],
+    await this.atomicSync(async () => {
+      // Set metadata for factor key backup
+      await this.tKey?.addLocalMetadataTransitions({
+        input: [metadataShare],
+        privKey: [factorKey],
+      });
     });
-    if (!this.tkey?.manualSync) await this.tkey?.syncLocalMetadataTransitions();
   }
 
   private async addFactorDescription(args: {
